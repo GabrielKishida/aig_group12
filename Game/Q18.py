@@ -214,7 +214,7 @@ class Quoridor:
         if (current_player == 'P1' and self.player_positions[current_player][0] == 0) or \
                 (current_player == 'P2' and self.player_positions[current_player][0] == self.board_size - 1):
             self.game_over = True
-            print(self.player_positions, self.player_positions[current_player][0] == 0, self.player_positions[current_player][0] == self.board_size - 1)
+            #print(self.player_positions, self.player_positions[current_player][0] == 0, self.player_positions[current_player][0] == self.board_size - 1)
             print(f"Player {current_player} wins!")
             
         self.ply = (self.ply + 1) % 2
@@ -401,8 +401,8 @@ while running:
             game.move_player(current_move)
         else:
             game.place_wall(current_move)
-        print(current_move)
-        game.print_board()
+        #print(current_move)
+        #game.print_board()
 
         
         # Check if the game is over
