@@ -2,7 +2,9 @@ from collections import deque
 import copy
 
 MINIMAX_MAX = 1000
-MINIMAX_DEPTH = 10
+MINIMAX_WIN_VALUE = MINIMAX_MAX - 1
+MINIMAX_LOSS_VALUE = -MINIMAX_MAX + 1
+MINIMAX_DEPTH = 3
 
 class BfsNode:
         def __init__(self, position, source_direction, previous_node):
@@ -19,6 +21,9 @@ class MinimaxNode:
 class Player1AI:
     player = 'P1'
     enemy = 'P2'
+
+    player_distance_coef = 1.0
+    enemy_distance_coef = 2.0
 
     def get_legal_directions(self, from_position, board):
         board_size = len(board)
@@ -156,7 +161,9 @@ class Player1AI:
     def game_evaluation(self, player_positions, board):
         player_path = self.bfs_get_path(player_positions, self.player, board)
         enemy_path = self.bfs_get_path(player_positions, self.enemy, board)
-        return len(enemy_path) - len(player_path)
+        if len(player_path) == 0:
+            return MINIMAX_WIN_VALUE
+        return self.enemy_distance_coef*len(enemy_path) - self.player_distance_coef*len(player_path)
     
     def simulate_move(self, player_positions, current_player, walls, board, move, source_node):
         current_position = player_positions[current_player]
@@ -180,54 +187,42 @@ class Player1AI:
     def minimax(self, player_positions, walls, board, is_player_turn, current_depth, max_depth, current_node):
         if current_depth == max_depth:
             return current_node
+    
+        if current_node:
+            if current_node.value == MINIMAX_WIN_VALUE:
+                return current_node
         
-        child_nodes = []
         if is_player_turn:
             legal_moves = self.get_all_legal_moves(player_positions, self.player, walls, board)
+            max_value = - MINIMAX_MAX
+            best_node = None
             for legal_move in legal_moves:
                 walls_copy = walls.copy()
                 board_copy = copy.deepcopy(board)
                 positions_copy = player_positions.copy()
                 child_node = self.simulate_move(positions_copy, self.player, walls_copy, board_copy, legal_move, current_node)
-                child_nodes.append(child_node)
-            
-            max_value = - MINIMAX_MAX
-            best_node = MinimaxNode(None, None, None)
-            for node in child_nodes:
-                if node.value > max_value:
-                    best_node = node
-                    max_value = node.value
-        
-            positions_copy = player_positions.copy()
-            walls_copy = walls.copy()
-            board_copy = copy.deepcopy(board)
-
-            self.simulate_move(positions_copy, self.player, walls_copy, board_copy, best_node.source_move, current_node)
-            return self.minimax(positions_copy, walls_copy, board_copy, False, current_depth + 1, max_depth, best_node)
+                minimaxed_node = self.minimax(positions_copy, walls_copy, board_copy, False, current_depth + 1, max_depth, child_node)
+                if minimaxed_node.value == MINIMAX_WIN_VALUE:
+                    return minimaxed_node
+                if minimaxed_node.value > max_value:
+                    max_value = minimaxed_node.value
+                    best_node = minimaxed_node
+            return best_node
 
         else:
             legal_moves = self.get_all_legal_moves(player_positions, self.enemy, walls, board)
+            min_value = MINIMAX_MAX
+            worst_node = None
             for legal_move in legal_moves:
                 walls_copy = walls.copy()
                 board_copy = copy.deepcopy(board)
                 positions_copy = player_positions.copy()
                 child_node = self.simulate_move(positions_copy, self.enemy, walls_copy, board_copy, legal_move, current_node)
-                child_nodes.append(child_node)
-            
-            min_value = MINIMAX_MAX
-            worst_node = MinimaxNode(None, None, None)
-            for node in child_nodes:
-                if node.value < min_value:
-                    worst_node = node
-                    min_value = node.value
-        
-            positions_copy = player_positions.copy()
-            walls_copy = walls.copy()
-            board_copy = copy.deepcopy(board)
-
-            self.simulate_move(positions_copy, self.enemy, walls_copy, board_copy, worst_node.source_move, current_node)
-            return self.minimax(positions_copy, walls_copy, board_copy, False, current_depth + 1, max_depth, worst_node)
-
+                minimaxed_node = self.minimax(positions_copy, walls_copy, board_copy, True, current_depth + 1, max_depth, child_node)
+                if minimaxed_node.value < min_value:
+                    min_value = minimaxed_node.value
+                    worst_node = minimaxed_node
+            return worst_node
 
 
 
