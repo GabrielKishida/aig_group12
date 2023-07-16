@@ -2,6 +2,7 @@ from collections import deque
 import copy
 
 MINIMAX_MAX = 1000
+MINIMAX_DEPTH = 10
 
 class BfsNode:
         def __init__(self, position, source_direction, previous_node):
@@ -178,8 +179,6 @@ class Player1AI:
     
     def minimax(self, player_positions, walls, board, is_player_turn, current_depth, max_depth, current_node):
         if current_depth == max_depth:
-            print("got here")
-            print(current_node.source_move)
             return current_node
         
         child_nodes = []
@@ -233,19 +232,9 @@ class Player1AI:
 
 
     def get_move(self, game):
-        legal_moves = self.get_legal_walls(game.player_positions, game.board)
-        legal_moves = legal_moves + self.get_legal_directions(game.player_positions[self.player],game.board)
-        game_legal_moves = game.get_legal_moves()
-
-        for move in game_legal_moves:
-            if move not in legal_moves:
-                print("Legal move missing")
-                print(move)
-        for move in legal_moves:
-            if move not in game_legal_moves:
-                print("Illegal move considered legal")
-                print(move)
-        
-        minimax_node = self.minimax(game.player_positions.copy(), game.walls.copy(), copy.deepcopy(game.board), True, 0, 1, None)
-
-        return minimax_node.source_move
+        minimax_node = self.minimax(game.player_positions.copy(), game.walls.copy(), copy.deepcopy(game.board), True, 0, MINIMAX_DEPTH, None)
+        moves = deque([])
+        while minimax_node:
+            moves.appendleft(minimax_node.source_move)
+            minimax_node = minimax_node.source_node
+        return moves[0]
