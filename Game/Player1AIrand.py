@@ -1,10 +1,19 @@
 from collections import deque
+import copy
+
+MINIMAX_MAX = 1000
 
 class BfsNode:
         def __init__(self, position, source_direction, previous_node):
             self.position = position
             self.source_direction = source_direction
             self.previous_node = previous_node
+
+class MinimaxNode:
+        def __init__(self, source_move, source_node, value):
+            self.source_move = source_move
+            self.source_node = source_node
+            self.value = value
 
 class Player1AI:
     player = 'P1'
@@ -127,18 +136,103 @@ class Player1AI:
                     to_be_explored.appendleft(BfsNode(neighbor,direction,current_node))
         return False
     
-    def bfs_get_path(self, start_position, player, board):
+    def bfs_get_path(self, start_positions, player, board):
         path = deque([])
-        current_node = self.bfs(start_position, player, board)
+        current_node = self.bfs(start_positions, player, board)
         if current_node:
             while current_node.source_direction:
                 path.appendleft(current_node.source_direction)
                 current_node = current_node.previous_node
         return path
+    
+    def get_all_legal_moves(self, player_positions, player, walls, board):
+        moves = self.get_legal_directions(player_positions[player], board)
+        if walls[player] > 0:
+            moves = moves + self.get_legal_walls(player_positions,board)
+        return moves
+
+    
+    def game_evaluation(self, player_positions, board):
+        player_path = self.bfs_get_path(player_positions, self.player, board)
+        enemy_path = self.bfs_get_path(player_positions, self.enemy, board)
+        return len(enemy_path) - len(player_path)
+    
+    def simulate_move(self, player_positions, current_player, walls, board, move, source_node):
+        current_position = player_positions[current_player]
+        if move[0] == 'U':
+            player_positions[current_player] = (current_position[0] - 1, current_position[1])
+        elif move[0] == 'D':
+            player_positions[current_player] = (current_position[0] + 1, current_position[1])
+        elif move[0] == 'L':
+            player_positions[current_player] = (current_position[0], current_position[1] - 1)
+        elif move[0] == 'R':
+            player_positions[current_player] = (current_position[0], current_position[1] + 1)
+        else:
+            walls[current_player] = walls[current_player] - 1
+            self.update_board_wall(move,board)
+
+        move_value = self.game_evaluation(player_positions, board)
+
+        return MinimaxNode(move, source_node, move_value)
+
+    
+    def minimax(self, player_positions, walls, board, is_player_turn, current_depth, max_depth, current_node):
+        if current_depth == max_depth:
+            print("got here")
+            print(current_node.source_move)
+            return current_node
+        
+        child_nodes = []
+        if is_player_turn:
+            legal_moves = self.get_all_legal_moves(player_positions, self.player, walls, board)
+            for legal_move in legal_moves:
+                walls_copy = walls.copy()
+                board_copy = copy.deepcopy(board)
+                positions_copy = player_positions.copy()
+                child_node = self.simulate_move(positions_copy, self.player, walls_copy, board_copy, legal_move, current_node)
+                child_nodes.append(child_node)
+            
+            max_value = - MINIMAX_MAX
+            best_node = MinimaxNode(None, None, None)
+            for node in child_nodes:
+                if node.value > max_value:
+                    best_node = node
+                    max_value = node.value
+        
+            positions_copy = player_positions.copy()
+            walls_copy = walls.copy()
+            board_copy = copy.deepcopy(board)
+
+            self.simulate_move(positions_copy, self.player, walls_copy, board_copy, best_node.source_move, current_node)
+            return self.minimax(positions_copy, walls_copy, board_copy, False, current_depth + 1, max_depth, best_node)
+
+        else:
+            legal_moves = self.get_all_legal_moves(player_positions, self.enemy, walls, board)
+            for legal_move in legal_moves:
+                walls_copy = walls.copy()
+                board_copy = copy.deepcopy(board)
+                positions_copy = player_positions.copy()
+                child_node = self.simulate_move(positions_copy, self.enemy, walls_copy, board_copy, legal_move, current_node)
+                child_nodes.append(child_node)
+            
+            min_value = MINIMAX_MAX
+            worst_node = MinimaxNode(None, None, None)
+            for node in child_nodes:
+                if node.value < min_value:
+                    worst_node = node
+                    min_value = node.value
+        
+            positions_copy = player_positions.copy()
+            walls_copy = walls.copy()
+            board_copy = copy.deepcopy(board)
+
+            self.simulate_move(positions_copy, self.enemy, walls_copy, board_copy, worst_node.source_move, current_node)
+            return self.minimax(positions_copy, walls_copy, board_copy, False, current_depth + 1, max_depth, worst_node)
+
+
 
 
     def get_move(self, game):
-        path = self.bfs_get_path(game.player_positions, self.player,game.board)
         legal_moves = self.get_legal_walls(game.player_positions, game.board)
         legal_moves = legal_moves + self.get_legal_directions(game.player_positions[self.player],game.board)
         game_legal_moves = game.get_legal_moves()
@@ -152,5 +246,6 @@ class Player1AI:
                 print("Illegal move considered legal")
                 print(move)
         
+        minimax_node = self.minimax(game.player_positions.copy(), game.walls.copy(), copy.deepcopy(game.board), True, 0, 1, None)
 
-        return path[0]
+        return minimax_node.source_move
