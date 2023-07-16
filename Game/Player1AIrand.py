@@ -7,6 +7,8 @@ class BfsNode:
             self.previous_node = previous_node
 
 class Player1AI:
+    player = 'P1'
+    enemy = 'P2'
 
     def get_legal_directions(self, from_position, board):
         board_size = len(board)
@@ -28,16 +30,17 @@ class Player1AI:
         return moves
 
     # Does Breadth First Search and returns final destination node
-    def bfs(self, start_position, target_x, board):
-        start_node = BfsNode(start_position, None, None)
+    def bfs(self, player_positions, player, board):
+        target_x = {'P1': 0, 'P2': len(board) - 1}
+        start_node = BfsNode(player_positions[player], None, None)
         explored = []
         
-        explored.append(start_position)
+        explored.append(player_positions[player])
         to_be_explored = deque([])
         to_be_explored.append(start_node)
         while to_be_explored:
             current_node = to_be_explored.pop()
-            if current_node.position[0] == target_x:
+            if current_node.position[0] == target_x[player]:
                 return current_node
             directions = self.get_legal_directions(current_node.position, board)
             for direction in directions:
@@ -55,9 +58,9 @@ class Player1AI:
                     to_be_explored.appendleft(BfsNode(neighbor,direction,current_node))
         return False
     
-    def bfs_get_path(self, start_position, target_x, board):
+    def bfs_get_path(self, start_position, player, board):
         path = deque([])
-        current_node = self.bfs(start_position, target_x, board)
+        current_node = self.bfs(start_position, player, board)
         while current_node.source_direction:
             path.appendleft(current_node.source_direction)
             current_node = current_node.previous_node
@@ -65,7 +68,9 @@ class Player1AI:
 
 
     def get_move(self, game):
-        p1_position = game.player_positions[game.players[0]]
-        path = self.bfs_get_path(p1_position, 0,game.board)
-        print(path)
+        path = self.bfs_get_path(game.player_positions, self.player,game.board)
+        enemy_path = self.bfs_get_path(game.player_positions, self.enemy,game.board)
+        print("enemy_path", enemy_path)
+        print("player_path", path)
+
         return path[0]
