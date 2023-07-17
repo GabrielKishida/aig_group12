@@ -227,7 +227,7 @@ class Player1AI:
 
 
     def get_move(self, game):
-        minimax_node = self.minimax(game.player_positions.copy(), game.walls.copy(), copy.deepcopy(game.board), True, 0, MINIMAX_DEPTH, None)
+        minimax_node = self.minimax(game.player_positions, game.walls, game.board, True, 0, MINIMAX_DEPTH, None)
         moves = deque([])
         while minimax_node:
             moves.appendleft(minimax_node.source_move)
